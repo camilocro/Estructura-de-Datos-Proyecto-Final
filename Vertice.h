@@ -7,7 +7,7 @@ using namespace std;
 class Vertice {
 private:
     string nombre;
-    ListaDin<int> vecinos; // Guarda índices de otros vértices en el array del Grafo
+    ListaDin<int> vecinos;
 
 public:
     Vertice() {
@@ -17,8 +17,6 @@ public:
     Vertice(string _nombre) {
         nombre = _nombre;
     }
-
-    // Constructor de copia por defecto funciona bien aquí gracias a ListaDin
 
     void setNombre(string n) {
         nombre = n;

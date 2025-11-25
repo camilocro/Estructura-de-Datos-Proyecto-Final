@@ -32,7 +32,6 @@ public:
         datos = new T[capacidad];
     }
 
-    // Constructor de copia profundo
     ListaDin(const ListaDin& otra) {
         capacidad = otra.capacidad;
         cantidad = otra.cantidad;
@@ -44,20 +43,15 @@ public:
         }
     }
 
-    // --- CORRECCIÓN IMPORTANTE: OPERADOR DE ASIGNACIÓN ---
-    // Esto evita el error de "Doble Free" o corrupción de memoria
     ListaDin& operator=(const ListaDin& otra) {
-        if (this != &otra) { // Evitar auto-asignación
-            // 1. Borrar memoria vieja
+        if (this != &otra) { 
             if (capacidad > 0) {
                 delete[] datos;
             }
 
-            // 2. Copiar propiedades
             capacidad = otra.capacidad;
             cantidad = otra.cantidad;
 
-            // 3. Reservar nueva memoria y copiar datos uno por uno
             datos = new T[capacidad];
             int i = 0;
             while (i < cantidad) {
@@ -67,7 +61,6 @@ public:
         }
         return *this;
     }
-    // -----------------------------------------------------
 
     ~ListaDin() {
         if (capacidad > 0) {
@@ -108,7 +101,7 @@ public:
         if (indice >= 0 && indice < cantidad) {
             valor = datos[indice];
         }
-        return valor; // Retorna copia, seguro para tipos simples
+        return valor;
     }
 
     T& obtenerRef(int indice) {
