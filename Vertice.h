@@ -1,5 +1,5 @@
 #pragma once
-#include "ListaDin.h"
+#include <vector>
 #include <string>
 
 using namespace std;
@@ -7,7 +7,7 @@ using namespace std;
 class Vertice {
 private:
     string nombre;
-    ListaDin<int> vecinos;
+    vector<int> vecinos; // USAMOS VECTOR ESTÁNDAR
 
 public:
     Vertice() {
@@ -18,6 +18,8 @@ public:
         nombre = _nombre;
     }
 
+    // Ya no necesitamos constructores de copia manuales, vector lo hace solo
+
     void setNombre(string n) {
         nombre = n;
     }
@@ -27,10 +29,11 @@ public:
     }
 
     void agregarVecino(int indiceVecino) {
-        vecinos.insertar(indiceVecino);
+        vecinos.push_back(indiceVecino); // push_back en lugar de insertar
     }
 
-    ListaDin<int>& getVecinos() {
+    // Devolvemos referencia al vector para poder modificarlo fuera
+    vector<int>& getVecinos() {
         return vecinos;
     }
 };
