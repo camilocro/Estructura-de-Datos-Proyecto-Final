@@ -124,7 +124,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Grafo.h" />
-    <ClInclude Include="ListaDin.h" />
     <ClInclude Include="Vertice.h" />
   </ItemGroup>
   <ItemGroup>

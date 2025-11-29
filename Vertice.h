@@ -7,33 +7,34 @@ using namespace std;
 class Vertice {
 private:
     string nombre;
-    vector<int> vecinos; // USAMOS VECTOR ESTÁNDAR
+    vector<int> vecinos;
 
 public:
     Vertice() {
         nombre = "";
     }
 
-    Vertice(string _nombre) {
+    Vertice(const string& _nombre) {
         nombre = _nombre;
     }
 
-    // Ya no necesitamos constructores de copia manuales, vector lo hace solo
-
-    void setNombre(string n) {
+    void setNombre(const string& n) {
         nombre = n;
     }
 
-    string getNombre() {
+    string getNombre() const {
         return nombre;
     }
 
     void agregarVecino(int indiceVecino) {
-        vecinos.push_back(indiceVecino); // push_back en lugar de insertar
+        vecinos.push_back(indiceVecino);
     }
 
-    // Devolvemos referencia al vector para poder modificarlo fuera
     vector<int>& getVecinos() {
+        return vecinos;
+    }
+
+    const vector<int>& getVecinos() const {
         return vecinos;
     }
 };

@@ -1,18 +1,12 @@
 #include <iostream>
 #include <string>
-#include <ctime>
 #include <cmath> 
-#include <chrono>
+#include <chrono> 
 #include "Grafo.h"
 
 using namespace std;
 
-int main() {
-    srand(static_cast<unsigned int>(time(0)));
-
-    cout << "=== PROYECTO FINAL: KARGER MIN CUT ===" << endl;
-
-    string nombreArchivo;
+void cargarDatos(Grafo& grafo, string& nombreArchivo) {
     cout << "Ingrese nombre del archivo: ";
     char buffer[256];
     cin.getline(buffer, 256);
@@ -22,39 +16,18 @@ int main() {
         nombreArchivo = "MIN_CUT_CON_NOMBRES.txt";
     }
 
-    Grafo grafoOriginal;
     cout << "Cargando desde '" << nombreArchivo << "'..." << endl;
-    grafoOriginal.cargarDesdeArchivo(nombreArchivo);
+    grafo.cargarDesdeArchivo(nombreArchivo);
+}
 
-    int numVertices = grafoOriginal.getNumVertices();
-
-    if (numVertices < 2) {
-        cout << "ERROR: No se cargaron vertices. Verifique el nombre del archivo." << endl;
-        cin.get();
-        return -1;
-    }
-
-    if (grafoOriginal.contarAristasRestantes() == 0) {
-        cout << "ERROR: El grafo no tiene aristas o esta desconectado." << endl;
-        cout << "Revise el formato del archivo de texto." << endl;
-        cin.get();
-        return -1;
-    }
-
-    int iteraciones = (int)(numVertices * numVertices * log(numVertices));
-    if (iteraciones < 10) iteraciones = 10;
-
-    cout << "Vertices: " << numVertices << endl;
-    cout << "Iteraciones calculadas: " << iteraciones << endl;
+void ejecutarAlgoritmoPrincipal(const Grafo& grafoOriginal, int iteraciones, Grafo& mejorGrafo, int& minCorteGlobal, long long& tiempoSegundos, int& tiempoMinutos) {
     cout << "Iniciando proceso..." << endl;
-    cout << "Progreso: ";
 
     auto inicioReloj = chrono::high_resolution_clock::now();
 
-    int minCorteGlobal = 2147483647;
-    Grafo mejorGrafo;
-
+    minCorteGlobal = 2147483647;
     int i = 0;
+
     while (i < iteraciones) {
         Grafo grafoCopia(grafoOriginal);
 
@@ -67,14 +40,16 @@ int main() {
             }
         }
 
-        int corte = grafoCopia.contarAristasRestantes();
+        int corteActual = grafoCopia.contarAristasRestantes();
 
-        if (corte < minCorteGlobal && corte > 0) {
-            minCorteGlobal = corte;
+        // cout << "Iteracion " << i << ": Corte encontrado = " << corteActual << endl;
+
+        if (corteActual < minCorteGlobal && corteActual > 0) {
+            minCorteGlobal = corteActual;
             mejorGrafo = grafoCopia;
 
-            cout << endl << ">> Nuevo Record: " << minCorteGlobal
-                << " (Iter: " << i << ")" << endl << "Progreso: ";
+            cout << ">> [NUEVO RECORD] Corte: " << minCorteGlobal
+                << " (En iteracion: " << i << ")" << endl;
         }
 
         if (iteraciones > 500 && i % (iteraciones / 50) == 0) {
@@ -85,17 +60,50 @@ int main() {
     }
 
     auto finReloj = chrono::high_resolution_clock::now();
-
     auto duracionTotal = chrono::duration_cast<chrono::seconds>(finReloj - inicioReloj).count();
-    int minutos = duracionTotal / 60;
-    int segundos = duracionTotal % 60;
 
+    tiempoMinutos = (int)(duracionTotal / 60);
+    tiempoSegundos = (int)(duracionTotal % 60);
+}
+
+void mostrarResultados(int minCorte, int minutos, int segundos, const Grafo& mejorGrafo) {
     cout << endl << endl << "=== ANALISIS FINALIZADO ===" << endl;
-    cout << "Tiempo Total de Ejecucion: " << minutos << " min " << segundos << " seg." << endl;
-    cout << "Corte Minimo DEFINITIVO: " << minCorteGlobal << endl;
+    cout << "Tiempo Total: " << minutos << " min " << segundos << " seg." << endl;
+    cout << "Corte Minimo DEFINITIVO: " << minCorte << endl;
 
-    cout << endl << "Visualizacion del corte:" << endl;
+    cout << endl << "Visualizacion detallada del grafo resultante:" << endl;
     mejorGrafo.mostrar();
+}
+
+int main() {
+    cout << "=== PROYECTO FINAL: KARGER MIN CUT ===" << endl;
+
+    Grafo grafoOriginal;
+    string nombreArchivo;
+
+    cargarDatos(grafoOriginal, nombreArchivo);
+
+    int numVertices = grafoOriginal.getNumVertices();
+    if (numVertices < 2) {
+        cout << "ERROR: No se cargaron vertices o el archivo esta vacio." << endl;
+        cin.get();
+        return -1;
+    }
+
+    int iteraciones = (int)(numVertices * numVertices * log(numVertices));
+    if (iteraciones < 10) iteraciones = 10;
+
+    cout << "Vertices: " << numVertices << endl;
+    cout << "Iteraciones calculadas (N^2 * ln N): " << iteraciones << endl;
+
+    Grafo mejorGrafo;
+    int minCorteGlobal;
+    long long tiempoSeg;
+    int minutos, segundos;
+
+    ejecutarAlgoritmoPrincipal(grafoOriginal, iteraciones, mejorGrafo, minCorteGlobal, tiempoSeg, minutos);
+
+    mostrarResultados(minCorteGlobal, minutos, (int)tiempoSeg, mejorGrafo);
 
     cin.get();
     return 0;

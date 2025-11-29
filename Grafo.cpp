@@ -1,23 +1,18 @@
 #include "Grafo.h"
 
 Grafo::Grafo() {
-    // Constructor vacío
 }
 
-// No hace falta implementar copia profunda, vector lo hace automático
-
-void Grafo::cargarDesdeArchivo(string nombreArchivo) {
+void Grafo::cargarDesdeArchivo(const string& nombreArchivo) {
     ifstream archivo(nombreArchivo);
     string dato;
 
     if (archivo.is_open()) {
-        // PASADA 1: Crear Vértices
         while (archivo >> dato) {
             if (dato != "-1") {
                 if (mapaIndices.find(dato) == mapaIndices.end()) {
-                    Vertice v(dato);
-                    vertices.push_back(v); // Usamos push_back
-                    mapaIndices[dato] = vertices.size() - 1; // Usamos size()
+                    vertices.emplace_back(dato);
+                    mapaIndices[dato] = (int)vertices.size() - 1;
                 }
             }
         }
@@ -28,7 +23,6 @@ void Grafo::cargarDesdeArchivo(string nombreArchivo) {
         int indiceOrigen = -1;
         bool nuevaLinea = true;
 
-        // PASADA 2: Crear Aristas
         while (archivo >> dato) {
             if (dato == "-1") {
                 nuevaLinea = true;
@@ -41,10 +35,12 @@ void Grafo::cargarDesdeArchivo(string nombreArchivo) {
                     nuevaLinea = false;
                 }
                 else {
-                    if (indiceOrigen != -1 && mapaIndices.find(dato) != mapaIndices.end()) {
-                        int indiceDestino = mapaIndices[dato];
-                        // Acceso directo con [] como en arrays
-                        vertices[indiceOrigen].agregarVecino(indiceDestino);
+                    if (indiceOrigen != -1) {
+                        auto it = mapaIndices.find(dato);
+                        if (it != mapaIndices.end()) {
+                            int indiceDestino = it->second;
+                            vertices[indiceOrigen].agregarVecino(indiceDestino);
+                        }
                     }
                 }
             }
@@ -55,46 +51,42 @@ void Grafo::cargarDesdeArchivo(string nombreArchivo) {
 }
 
 void Grafo::obtenerAristaAleatoria(int& idxN1, int& idxN2) {
-    if (vertices.size() < 2) {
-        idxN1 = -1; idxN2 = -1;
-        return;
-    }
+    if (vertices.size() >= 2) {
 
-    // rand % size()
-    idxN1 = rand() % vertices.size();
+        static random_device rd;
+        static mt19937 gen(rd());
+        uniform_int_distribution<> disN1(0, (int)vertices.size() - 1);
 
-    Vertice& v = vertices[idxN1];
-    int numVecinos = v.getVecinos().size();
+        idxN1 = disN1(gen);
 
-    if (numVecinos > 0) {
-        int azarVecino = rand() % numVecinos;
-        // Accedemos al vecino en la posición aleatoria
-        idxN2 = v.getVecinos()[azarVecino];
+        Vertice& v = vertices[idxN1];
+        int numVecinos = (int)v.getVecinos().size();
+
+        if (numVecinos > 0) {
+            uniform_int_distribution<> disN2(0, numVecinos - 1);
+            int azarVecino = disN2(gen);
+
+            idxN2 = v.getVecinos()[azarVecino];
+        }
+        else {
+            idxN2 = -1;
+        }
     }
     else {
+        idxN1 = -1;
         idxN2 = -1;
     }
 }
 
 void Grafo::contraerArista(int idxu, int idxv) {
-    Vertice& u = vertices[idxu];
-    Vertice& v = vertices[idxv];
+    vector<int>& vecinosU = vertices[idxu].getVecinos();
+    vector<int>& vecinosV = vertices[idxv].getVecinos();
 
-    vector<int>& vecinosU = u.getVecinos();
-    vector<int>& vecinosV = v.getVecinos();
+    vecinosU.insert(vecinosU.end(), vecinosV.begin(), vecinosV.end());
 
-    // 1. Mover vecinos de V a U
-    for (int vecino : vecinosV) {
-        vecinosU.push_back(vecino);
-    }
-
-    // 2. Eliminar auto-ciclos (referencias a U o V)
-    // Implementación manual de "filter" sobre el vector de U
-    // Usamos un iterador para borrar eficientemente
     int k = 0;
-    while (k < vecinosU.size()) {
+    while (k < (int)vecinosU.size()) {
         if (vecinosU[k] == idxu || vecinosU[k] == idxv) {
-            // Swap and Pop para borrar en O(1)
             vecinosU[k] = vecinosU.back();
             vecinosU.pop_back();
         }
@@ -103,63 +95,73 @@ void Grafo::contraerArista(int idxu, int idxv) {
         }
     }
 
-    // 3. SWAP AND POP GLOBAL
-    // Vamos a eliminar el nodo V moviendo el ULTIMO nodo a su lugar.
-    int indiceUltimo = vertices.size() - 1;
+    int indiceUltimo = (int)vertices.size() - 1;
 
-    // Índices de remapeo
     int nuevoIndiceParaV = idxu;
     int nuevoIndiceParaLast = idxv;
 
-    // Caso especial: Si el que sobrevive (U) era el último, al moverlo cambia de ID
     if (idxu == indiceUltimo) {
         nuevoIndiceParaV = idxv;
     }
 
-    // Mover datos físicos: El último sobrescribe a V
     if (idxv != indiceUltimo) {
         vertices[idxv] = vertices[indiceUltimo];
     }
 
-    // Borrar el último físico (ya está copiado o era V)
     vertices.pop_back();
 
-    // 4. Actualizar referencias en todo el grafo
-    // Como movimos el nodo "Ultimo" a la posición "idxv", 
-    // todos los que apuntaban a "Ultimo" ahora deben apuntar a "idxv".
-    // Y todos los que apuntaban al nodo muerto "v", ahora apuntan a "u".
-
-    for (int i = 0; i < vertices.size(); i++) {
+    for (int i = 0; i < (int)vertices.size(); i++) {
         vector<int>& lista = vertices[i].getVecinos();
-        for (int j = 0; j < lista.size(); j++) {
+        for (int j = 0; j < (int)lista.size(); j++) {
             int target = lista[j];
 
             if (target == idxv) {
-                lista[j] = nuevoIndiceParaV; // Redirigir V -> U
+                lista[j] = nuevoIndiceParaV;
             }
-            else if (target == indiceUltimo) {
-                lista[j] = nuevoIndiceParaLast; // Redirigir Last -> Hueco de V
+            else {
+                if (target == indiceUltimo) {
+                    lista[j] = nuevoIndiceParaLast;
+                }
             }
         }
     }
 }
 
-int Grafo::getNumVertices() {
-    return vertices.size();
+int Grafo::getNumVertices() const {
+    return (int)vertices.size();
 }
 
-int Grafo::contarAristasRestantes() {
+int Grafo::contarAristasRestantes() const {
+    int cantidad = 0;
     if (vertices.size() > 0) {
-        return vertices[0].getVecinos().size();
+        cantidad = (int)vertices[0].getVecinos().size();
     }
-    return 0;
+    return cantidad;
 }
 
-void Grafo::mostrar() {
-    cout << "--- Grafo (" << vertices.size() << " nodos) ---" << endl;
-    for (int i = 0; i < vertices.size(); i++) {
-        cout << "[" << vertices[i].getNombre() << "] -> "
-            << vertices[i].getVecinos().size() << " conexiones." << endl;
+void Grafo::mostrar() const {
+    cout << "--------------------------------------------------------" << endl;
+    cout << " Estructura Final (2 Super-Vertices Restantes) " << endl;
+    cout << "--------------------------------------------------------" << endl;
+
+    for (const auto& v : vertices) {
+        cout << "GRUPO [" << v.getNombre() << "] conecta con:" << endl;
+        cout << "   -> ";
+
+        const vector<int>& vecinos = v.getVecinos();
+
+        for (size_t k = 0; k < vecinos.size(); ++k) {
+            int indiceVecino = vecinos[k];
+
+            if (indiceVecino >= 0 && indiceVecino < vertices.size()) {
+                cout << vertices[indiceVecino].getNombre();
+
+                if (k < vecinos.size() - 1) {
+                    cout << ", ";
+                }
+            }
+        }
+        cout << endl << "   (Total aristas: " << vecinos.size() << ")" << endl << endl;
     }
-    cout << "--------------------------------" << endl;
+    cout << "--------------------------------------------------------" << endl;
 }
